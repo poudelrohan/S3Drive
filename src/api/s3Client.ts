@@ -66,7 +66,7 @@ class AWSS3Client {
       Key: key,
     });
     const response = await this.client.send(command);
-    return response.Body;
+    return response.Body?.transformToWebStream();
   }
 }
 

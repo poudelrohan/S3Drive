@@ -31,25 +31,32 @@ export const File: FunctionComponent<FileProps> = ({
 
   const onDownloadFile = async () => {
     setIsLoading(true);
-    const response = await s3Client.downloadFileFromBucket(
-      process.env.REACT_APP_BUCKET_NAME!,
-      item.name
-    );
-    const fileContent = await streamToBlob(
-      response as ReadableStream<Uint8Array>
-    );
-    const url = URL.createObjectURL(fileContent);
+    try {
+      const response = await s3Client.downloadFileFromBucket(
+        process.env.REACT_APP_BUCKET_NAME!,
+        item.name
+      );
+      
+      if (!response) {
+        throw new Error('No response from S3');
+      }
 
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = item.name
-      .split("/")
-      .filter((x) => x)
-      .pop()!;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    setIsLoading(false);
+      const fileContent = await streamToBlob(response);
+      const url = URL.createObjectURL(fileContent);
+
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = item.name.split("/").filter((x) => x).pop()!;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url); // Clean up
+    } catch (error) {
+      console.error('Download failed:', error);
+      // Add error handling UI feedback here
+    } finally {
+      setIsLoading(false);
+    }
   };
   // Helper function to convert stream to Blob
   const streamToBlob = async (stream: ReadableStream<Uint8Array>) => {
